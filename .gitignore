@@ -1,0 +1,25 @@
+# Backend build output
+gameshop-api/target/
+
+# Frontend dependencies and build output
+gameshop-frontend/node_modules/
+gameshop-frontend/dist/
+
+# Local environment secrets
+.env
+.env.*
+!.env.example
+
+# Local configuration
+**/application-local.properties
+**/application-prod.properties
+**/secrets/
+
+# IDE and OS files
+.idea/
+.vscode/
+.DS_Store
+Thumbs.db
+
+# Logs
+*.log
