@@ -97,6 +97,7 @@ function App() {
   const [startTime, setStartTime] = useState('')
 
   const [duration, setDuration] = useState('1')
+  const [selectedStationIds, setSelectedStationIds] = useState([])
 
 
 
@@ -155,6 +156,23 @@ function App() {
     loadStations()
 
   }, [])
+
+
+  function toggleStationSelection(stationId) {
+    const id = Number(stationId)
+
+    setSelectedStationIds((previousIds) => {
+      if (previousIds.includes(id)) {
+        return previousIds.filter((selectedId) => selectedId !== id)
+      }
+
+      if (previousIds.length >= 4) {
+        return previousIds
+      }
+
+      return [...previousIds, id]
+    })
+  }
 
 
 
@@ -312,6 +330,24 @@ function App() {
 
       }
 
+      if (selectedStationIds.length === 0) {
+        throw new Error('Please select at least one console.')
+      }
+
+      if (selectedStationIds.length > 4) {
+        throw new Error('You can select a maximum of four consoles.')
+      }
+
+      const currentlyAvailableIds = new Set(
+        availableStations.map((station) =>
+          Number(getBookingValue(station, 'stationId', 'station_id')),
+        ),
+      )
+
+      if (!selectedStationIds.every((id) => currentlyAvailableIds.has(id))) {
+        throw new Error('One or more selected consoles are no longer available. Please review your selection.')
+      }
+
 
 
       // Fetch a CSRF token before sending the state-changing booking request.
@@ -328,6 +364,7 @@ function App() {
         customerName: customerName.trim(),
         startTime: `${bookingDate}T${startTime}:00`,
         durationHours: Number(duration),
+        stationIds: selectedStationIds,
       }
 
       const response = await fetch(`${API_URL}/bookings`, {
@@ -377,6 +414,7 @@ function App() {
       setStartTime('')
 
       setDuration('1')
+      setSelectedStationIds([])
 
       setAvailableStations(null)
 
@@ -417,6 +455,15 @@ function App() {
     ),
 
   )
+
+  const selectedHourlyRate = stations
+    .filter((station) => selectedStationIds.includes(
+      Number(getBookingValue(station, 'stationId', 'station_id')),
+    ))
+    .reduce((total, station) =>
+      total + Number(getBookingValue(station, 'hourlyRate', 'hourly_rate') ?? 0), 0)
+
+  const estimatedTotal = selectedHourlyRate * Number(duration)
 
 
 
@@ -609,6 +656,7 @@ function App() {
                 const hourlyRate = getBookingValue(station, 'hourlyRate', 'hourly_rate')
 
                 const operational = station.operational === true
+                const isSelected = selectedStationIds.includes(Number(stationId))
 
                 const isAvailableForSlot = slotIsSelected
 
@@ -683,17 +731,13 @@ function App() {
                       </strong>
 
                       <button
-
+                        type="button"
                         className="text-button"
-
-                        disabled={!operational}
-
-                        onClick={scrollToBooking}
-
+                        disabled={!operational || (slotIsSelected && !isAvailableForSlot && !isSelected) || (!isSelected && selectedStationIds.length >= 4)}
+                        aria-pressed={isSelected}
+                        onClick={() => toggleStationSelection(stationId)}
                       >
-
-                        Book this console ↗
-
+                        {isSelected ? 'Selected ✓' : 'Select console'}
                       </button>
 
                     </div>
@@ -842,7 +886,7 @@ function App() {
 
                 </option>
 
-               {Array.from({ length: 13 }, (_, index) => index + 10).map((hour) => (
+                {Array.from({ length: 13 }, (_, index) => index + 10).map((hour) => (
 
                   <option
 
@@ -880,13 +924,13 @@ function App() {
 
               >
 
-                <option value="1">1 hour — ₹150</option>
+                <option value="1">1 hour</option>
 
-                <option value="2">2 hours — ₹300</option>
+                <option value="2">2 hours</option>
 
-                <option value="3">3 hours — ₹450</option>
+                <option value="3">3 hours</option>
 
-                <option value="4">4 hours — ₹600</option>
+                <option value="4">4 hours</option>
 
               </select>
 
@@ -894,11 +938,19 @@ function App() {
 
 
 
+            <p className="form-note">
+              Selected consoles: {selectedStationIds.length} / 4
+              {selectedStationIds.length > 0 && ` — ${selectedStationIds.map((id) => {
+                const station = stations.find((item) => Number(getBookingValue(item, 'stationId', 'station_id')) === id)
+                return getBookingValue(station, 'stationName', 'station_name')
+              }).join(', ')}`}
+            </p>
+
             <div className="booking-total">
 
               <span>Estimated total</span>
 
-              <strong>₹{150 * Number(duration)}</strong>
+              <strong>₹{estimatedTotal.toFixed(2)}</strong>
 
             </div>
 
@@ -955,7 +1007,7 @@ function App() {
                 submitting ||
 
                 checkingAvailability ||
-
+                selectedStationIds.length === 0 ||
                 (slotIsSelected && availableStations !== null && availableStations.length === 0)
 
               }
