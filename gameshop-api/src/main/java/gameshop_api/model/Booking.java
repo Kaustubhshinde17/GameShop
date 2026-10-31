@@ -3,6 +3,8 @@ package gameshop_api.model;
 
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
+import java.util.ArrayList;
+import java.util.List;
 
 public class Booking {
 
@@ -13,12 +15,18 @@ public class Booking {
     private int durationHours;
     private BigDecimal hourlyRate;
     private BookingStatus status;
+
+    // Legacy field for existing single-console bookings.
     private Integer assignedStationId;
+
+    // New field for multiple consoles.
+    private List<BookingStation> bookingStations = new ArrayList<>();
 
     public Booking(int bookingId, String customerName,
                    LocalDateTime startTime, LocalDateTime endTime,
                    int durationHours, BigDecimal hourlyRate,
                    BookingStatus status, Integer assignedStationId) {
+
         this.bookingId = bookingId;
         this.customerName = customerName;
         this.startTime = startTime;
@@ -61,9 +69,20 @@ public class Booking {
         return assignedStationId;
     }
 
+    public List<BookingStation> getBookingStations() {
+        return bookingStations;
+    }
+
+    public void setBookingStations(List<BookingStation> bookingStations) {
+        this.bookingStations = bookingStations == null
+                ? new ArrayList<>()
+                : new ArrayList<>(bookingStations);
+    }
+
     public BigDecimal getTotalCost() {
         return hourlyRate.multiply(BigDecimal.valueOf(durationHours));
     }
+
     public void setBookingId(int bookingId) {
         this.bookingId = bookingId;
     }

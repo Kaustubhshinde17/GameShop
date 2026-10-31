@@ -1,9 +1,12 @@
+
 package gameshop_api.dto;
 
 import java.time.LocalDateTime;
+import java.util.List;
 
 import jakarta.validation.constraints.Min;
 import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.NotEmpty;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Size;
 
@@ -18,6 +21,10 @@ public class CreateBookingRequest {
 
     @Min(value = 1, message = "Duration must be at least one hour")
     private int durationHours;
+
+    @NotEmpty(message = "Select at least one console")
+    @Size(max = 4, message = "You can select a maximum of four consoles")
+    private List<@NotNull Integer> stationIds;
 
     public CreateBookingRequest() {
     }
@@ -44,5 +51,13 @@ public class CreateBookingRequest {
 
     public void setDurationHours(int durationHours) {
         this.durationHours = durationHours;
+    }
+
+    public List<Integer> getStationIds() {
+        return stationIds;
+    }
+
+    public void setStationIds(List<Integer> stationIds) {
+        this.stationIds = stationIds;
     }
 }

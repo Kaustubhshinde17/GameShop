@@ -33,7 +33,6 @@ public class GamingStationService {
             LocalDateTime startTime,
             int durationHours) {
 
-        // Validate the requested time slot.
         if (startTime == null) {
             throw new IllegalArgumentException(
                     "Start time is required");
@@ -44,9 +43,9 @@ public class GamingStationService {
                     "Duration must be greater than zero");
         }
 
-        LocalDateTime endTime = startTime.plusHours(durationHours);
+        LocalDateTime endTime =
+                startTime.plusHours(durationHours);
 
-        // Café opening hours: 10:00 AM to 11:00 PM.
         LocalDateTime openingTime =
                 startTime.toLocalDate().atTime(10, 0);
 
@@ -59,37 +58,31 @@ public class GamingStationService {
                     "Booking must be within café opening hours (10 AM - 11 PM)");
         }
 
-        // Fetch consoles and existing bookings from MySQL.
         List<GamingStation> stations =
                 stationRepository.findAll();
 
         List<Booking> bookings =
                 bookingRepository.findAll();
 
-        // Keep operational consoles with no conflicting
-        // confirmed booking.
         return stations.stream()
                 .filter(GamingStation::isOperational)
                 .filter(station -> bookings.stream().noneMatch(booking -> {
 
-                    if (booking.getStatus()
-                            != BookingStatus.CONFIRMED) {
+                    if (booking.getStatus() != BookingStatus.PENDING
+                            && booking.getStatus() != BookingStatus.CONFIRMED) {
                         return false;
                     }
 
-                    Integer assignedStationId =
-                            booking.getAssignedStationId();
+                    boolean selectedConsole =
+                            booking.getBookingStations().stream()
+                                    .anyMatch(bs ->
+                                            bs.getStationId() == station.getStationId());
 
-                    if (assignedStationId == null
-                            || assignedStationId.intValue()
-                                    != station.getStationId()) {
-                        return false;
-                    }
-
-                    // Two bookings overlap if each starts
-                    // before the other one ends.
-                    return startTime.isBefore(booking.getEndTime())
+                    boolean overlaps =
+                            startTime.isBefore(booking.getEndTime())
                             && endTime.isAfter(booking.getStartTime());
+
+                    return selectedConsole && overlaps;
                 }))
                 .toList();
     }
